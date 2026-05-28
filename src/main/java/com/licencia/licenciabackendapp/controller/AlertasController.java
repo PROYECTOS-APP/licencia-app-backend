@@ -84,8 +84,23 @@ public class AlertasController {
             return ResponseEntity.status(401).body(Map.of("mensaje", "No autenticado"));
         }
 
-        alertasService.eliminarAlerta(id, usuarioId);
+        // Verificar que la alerta pertenezca al usuario
+        var alerta = alertasService.getAlertaById(id);
+        if (alerta.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("mensaje", "Alerta no encontrada"));
+        }
+
+        if (!alerta.get().getUsuario().getId().equals(usuarioId)) {
+            return ResponseEntity.status(403).body(Map.of("mensaje", "No autorizado"));
+        }
+
+        alertasService.eliminarAlerta(id);
         System.out.println("🗑️ Alerta eliminada ID: " + id);
-        return ResponseEntity.ok(Map.of("success", true));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("mensaje", "Alerta eliminada correctamente");
+
+        return ResponseEntity.ok(response);
     }
 }

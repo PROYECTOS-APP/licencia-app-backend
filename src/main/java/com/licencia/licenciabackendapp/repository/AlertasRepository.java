@@ -10,15 +10,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AlertasRepository extends JpaRepository<Alerta, Long> {
+
     List<Alerta> findByUsuarioId(Long usuarioId);
+
     Optional<Alerta> findByIdAndUsuarioId(Long id, Long usuarioId);
 
-    // Método para eliminar por ID y UsuarioID
-    void deleteByIdAndUsuarioId(Long id, Long usuarioId);
-
-    // O usando @Query
     @Modifying
     @Transactional
     @Query("DELETE FROM Alerta a WHERE a.id = :id AND a.usuario.id = :usuarioId")
-    void eliminarPorIdYUsuario(@Param("id") Long id, @Param("usuarioId") Long usuarioId);
+    void deleteByIdAndUsuarioId(@Param("id") Long id, @Param("usuarioId") Long usuarioId);
 }
