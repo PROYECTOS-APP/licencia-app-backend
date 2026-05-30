@@ -4,11 +4,14 @@ import com.licencia.licenciabackendapp.model.Usuario;
 import com.licencia.licenciabackendapp.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -18,40 +21,31 @@ public class AuthController {
     @Autowired
     private UsuarioService usuarioService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> request, HttpSession session) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
         String email = request.get("email");
         String password = request.get("password");
 
-        System.out.println("=========================================");
-        System.out.println("📥 INTENTO DE LOGIN");
-        System.out.println("Email: " + email);
-        System.out.println("Password enviada: " + password);
-        System.out.println("=========================================");
+        System.out.println("📥 LOGIN: " + email);
 
         var usuarioOpt = usuarioService.findByEmail(email);
 
         if (usuarioOpt.isEmpty()) {
-            System.out.println("❌ Usuario no encontrado: " + email);
             return ResponseEntity.badRequest().body(Map.of("mensaje", "Usuario no encontrado"));
         }
 
         Usuario usuario = usuarioOpt.get();
-        System.out.println("✅ Usuario encontrado en BD");
-        System.out.println("   Password en BD: " + usuario.getPassword());
-        System.out.println("   Comparación: " + (usuario.getPassword().equals(password) ? "IGUALES" : "DIFERENTES"));
 
-        if (!usuario.getPassword().equals(password)) {
-            System.out.println("❌ Contraseña incorrecta");
+        if (!passwordEncoder.matches(password, usuario.getPassword())) {
             return ResponseEntity.badRequest().body(Map.of("mensaje", "Contraseña incorrecta"));
         }
 
+        HttpSession session = httpRequest.getSession(true);
         session.setAttribute("usuarioId", usuario.getId());
         session.setAttribute("usuarioEmail", usuario.getEmail());
-
-        System.out.println("✅ LOGIN EXITOSO!");
-        System.out.println("   Usuario ID: " + usuario.getId());
-        System.out.println("   Session ID: " + session.getId());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -68,8 +62,6 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
-        System.out.println("📝 REGISTRO - Email: " + email);
-
         if (usuarioService.existsByEmail(email)) {
             return ResponseEntity.badRequest().body(Map.of("mensaje", "El email ya está registrado"));
         }
@@ -77,37 +69,114 @@ public class AuthController {
         Usuario usuario = new Usuario();
         usuario.setNombre(nombre);
         usuario.setEmail(email);
-        usuario.setPassword(password);
+        usuario.setPassword(passwordEncoder.encode(password));
         usuario.setAvatar("assets/icon/avatar-default.png");
 
         Usuario saved = usuarioService.registrar(usuario);
-
-        System.out.println("✅ Usuario registrado: " + email);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("nombre", saved.getNombre());
         response.put("email", saved.getEmail());
+        response.put("avatar", saved.getAvatar());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ============ RECUPERAR CONTRASEÑA ============
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+
+        System.out.println("📧 Solicitud recuperación: " + email);
+
+        var usuarioOpt = usuarioService.findByEmail(email);
+
+        if (usuarioOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("mensaje", "Email no registrado"));
+        }
+
+        Usuario usuario = usuarioOpt.get();
+
+        // Generar token único
+        String token = UUID.randomUUID().toString();
+        usuario.setResetToken(token);
+        usuario.setResetTokenExpiry(LocalDateTime.now().plusHours(1)); // Token válido por 1 hora
+
+        usuarioService.actualizar(usuario);
+
+        System.out.println("✅ Token generado: " + token);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("token", token);
+        response.put("message", "Se ha enviado un enlace para restablecer tu contraseña");
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+
+        System.out.println("🔐 Restableciendo contraseña con token: " + token);
+
+        var usuarioOpt = usuarioService.findByResetToken(token);
+
+        if (usuarioOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("mensaje", "Token inválido"));
+        }
+
+        Usuario usuario = usuarioOpt.get();
+
+        // Verificar si el token ha expirado
+        if (usuario.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of("mensaje", "El enlace ha expirado. Solicita uno nuevo"));
+        }
+
+        // Actualizar contraseña
+        usuario.setPassword(passwordEncoder.encode(newPassword));
+        usuario.setPasswordUpdatedAt(LocalDateTime.now());
+        usuario.setResetToken(null);
+        usuario.setResetTokenExpiry(null);
+
+        usuarioService.actualizar(usuario);
+
+        System.out.println("✅ Contraseña restablecida exitosamente");
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Contraseña actualizada correctamente");
 
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        System.out.println("📤 CERRANDO SESIÓN - Session ID: " + session.getId());
-        session.invalidate();
+    public ResponseEntity<?> logout(HttpServletRequest httpRequest) {
+        HttpSession session = httpRequest.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
         return ResponseEntity.ok(Map.of("success", true));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(HttpSession session) {
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest httpRequest) {
+        HttpSession session = httpRequest.getSession(false);
+
+        if (session == null) {
+            return ResponseEntity.status(401).body(Map.of("mensaje", "No autenticado"));
+        }
+
         Long usuarioId = (Long) session.getAttribute("usuarioId");
 
         if (usuarioId == null) {
             return ResponseEntity.status(401).body(Map.of("mensaje", "No autenticado"));
         }
 
-        var usuario = usuarioService.findByEmail((String) session.getAttribute("usuarioEmail"));
+        var usuario = usuarioService.findById(usuarioId);
         if (usuario.isEmpty()) {
             return ResponseEntity.status(401).body(Map.of("mensaje", "Usuario no encontrado"));
         }

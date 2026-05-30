@@ -16,8 +16,20 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
+    public Usuario actualizar(Usuario usuario) {
+        return usuarioRepository.save(usuario);
+    }
+
     public Optional<Usuario> findByEmail(String email) {
         return usuarioRepository.findByEmail(email);
+    }
+
+    public Optional<Usuario> findByResetToken(String token) {
+        return usuarioRepository.findByResetToken(token);
+    }
+
+    public Optional<Usuario> findById(Long id) {
+        return usuarioRepository.findById(id);
     }
 
     public boolean existsByEmail(String email) {
