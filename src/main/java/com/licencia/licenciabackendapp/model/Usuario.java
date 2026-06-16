@@ -11,13 +11,22 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 100)
     private String nombre;
+
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
+
+    @Column(nullable = false, length = 255)
     private String password;
+
+    @Column(length = 255)
     private String avatar = "assets/icon/avatar-default.png";
+
+    @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
-    @Column(name = "reset_token")
+    @Column(name = "reset_token", length = 255)
     private String resetToken;
 
     @Column(name = "reset_token_expiry")
@@ -32,6 +41,9 @@ public class Usuario {
     @PrePersist
     protected void onCreate() {
         fechaCreacion = LocalDateTime.now();
+        if (avatar == null) {
+            avatar = "assets/icon/avatar-default.png";
+        }
     }
 
     // Getters y Setters
