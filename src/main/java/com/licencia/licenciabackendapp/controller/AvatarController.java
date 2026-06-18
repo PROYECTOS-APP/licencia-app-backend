@@ -114,7 +114,7 @@ public class AvatarController {
             usuario.setAvatar(avatarUrl);
             usuarioService.actualizar(usuario);
 
-            System.out.println("✅ Avatar actualizado para usuario: " + usuario.getEmail() + " - " + avatarUrl);
+            System.out.println("Avatar actualizado para usuario: " + usuario.getEmail() + " - " + avatarUrl);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -124,12 +124,12 @@ public class AvatarController {
             return ResponseEntity.ok(response);
 
         } catch (IOException e) {
-            System.err.println("❌ Error al guardar avatar: " + e.getMessage());
+            System.err.println("Error al guardar avatar: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     Map.of("success", false, "message", "Error al guardar el archivo: " + e.getMessage())
             );
         } catch (Exception e) {
-            System.err.println("❌ Error en upload: " + e.getMessage());
+            System.err.println("Error en upload: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     Map.of("success", false, "message", "Error al procesar la solicitud: " + e.getMessage())
             );
@@ -174,7 +174,7 @@ public class AvatarController {
             usuario.setAvatar("assets/icon/avatar-default.png");
             usuarioService.actualizar(usuario);
 
-            System.out.println("✅ Avatar resetear a default para usuario: " + usuario.getEmail());
+            System.out.println("Avatar resetear a default para usuario: " + usuario.getEmail());
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -183,7 +183,7 @@ public class AvatarController {
             ));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al eliminar avatar: " + e.getMessage());
+            System.err.println("Error al eliminar avatar: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     Map.of("success", false, "message", "Error al eliminar avatar: " + e.getMessage())
             );
@@ -205,7 +205,7 @@ public class AvatarController {
             ));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al obtener avatar: " + e.getMessage());
+            System.err.println("Error al obtener avatar: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     Map.of("success", false, "message", "Usuario no encontrado")
             );

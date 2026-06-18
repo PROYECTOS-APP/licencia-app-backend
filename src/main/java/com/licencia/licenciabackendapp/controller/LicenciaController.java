@@ -34,7 +34,7 @@ public class LicenciaController {
     @PostMapping("/crear")
     public ResponseEntity<?> crear(@RequestBody Map<String, Object> request, HttpSession session) {
         try {
-            System.out.println("📥 Datos recibidos: " + request);
+            System.out.println("Datos recibidos: " + request);
 
             Long usuarioId = (Long) session.getAttribute("usuarioId");
             if (usuarioId == null) {
@@ -97,8 +97,8 @@ public class LicenciaController {
 
             Licencia saved = licenciaService.crearLicencia(licencia, usuario);
 
-            System.out.println("✅ Licencia guardada con ID: " + saved.getId());
-            System.out.println("✅ Código: " + saved.getCodigoLicencia());
+            System.out.println(" Licencia guardada con ID: " + saved.getId());
+            System.out.println("Código: " + saved.getCodigoLicencia());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -107,7 +107,7 @@ public class LicenciaController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("mensaje", "Error: " + e.getMessage()));
         }

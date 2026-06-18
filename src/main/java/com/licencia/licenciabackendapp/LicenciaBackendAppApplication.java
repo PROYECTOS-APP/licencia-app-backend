@@ -11,6 +11,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class LicenciaBackendAppApplication {
     public static void main(String[] args) {
         SpringApplication.run(LicenciaBackendAppApplication.class, args);
-        System.out.println(" Backend iniciado en http://localhost:8081");
+        System.out.println(" Backend iniciado ");
     }
 }

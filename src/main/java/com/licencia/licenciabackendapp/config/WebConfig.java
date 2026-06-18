@@ -24,5 +24,13 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:./uploads/")
                 .setCachePeriod(0);
+
+        // Servir Swagger UI
+        registry.addResourceHandler("/swagger-ui/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/springdoc-openapi-ui/")
+                .resourceChain(false);
+
+        registry.addResourceHandler("/swagger-ui.html")
+                .addResourceLocations("classpath:/META-INF/resources/");
     }
 }

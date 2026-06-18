@@ -37,7 +37,7 @@ public class AlertasController {
             return ResponseEntity.status(401).body(Map.of("mensaje", "Usuario no encontrado"));
         }
 
-        System.out.println("📝 Creando alerta para usuario: " + usuario.getEmail());
+        System.out.println("Creando alerta para usuario: " + usuario.getEmail());
 
         Alerta alerta = new Alerta();
         alerta.setTitulo((String) request.get("titulo"));
@@ -54,7 +54,7 @@ public class AlertasController {
 
         Alerta saved = alertasService.crearAlerta(alerta);
 
-        System.out.println("✅ Alerta guardada en BD con ID: " + saved.getId());
+        System.out.println("Alerta guardada en BD con ID: " + saved.getId());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -72,7 +72,7 @@ public class AlertasController {
         }
 
         List<Alerta> alertas = alertasService.getAlertasByUsuario(usuarioId);
-        System.out.println("📋 Obteniendo " + alertas.size() + " alertas del usuario");
+        System.out.println("Obteniendo " + alertas.size() + " alertas del usuario");
         return ResponseEntity.ok(alertas);
     }
 
@@ -95,7 +95,7 @@ public class AlertasController {
         }
 
         alertasService.eliminarAlerta(id);
-        System.out.println("🗑️ Alerta eliminada ID: " + id);
+        System.out.println("Alerta eliminada ID: " + id);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

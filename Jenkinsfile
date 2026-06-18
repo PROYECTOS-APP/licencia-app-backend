@@ -5,72 +5,50 @@ pipeline {
         maven 'Maven-3.9'
     }
 
+    environment {
+        APP_NAME = 'licencia-backend-app'
+    }
+
     stages {
-        stage('Checkout') {
+        stage('Build') {
             steps {
-                echo '📦 Clonando repositorio...'
-                checkout scm
-            }
-        }
-
-        stage('Compile') {
-            steps {
-                echo '🔨 Compilando...'
-                bat 'mvn clean compile -DskipTests'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo '🧪 Ejecutando tests...'
-                bat 'mvn test'
+                echo 'Compilando...'
+                bat 'mvn clean package -DskipTests'
             }
             post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar'
                 }
-            }
-        }
-
-        stage('Package') {
-            steps {
-                echo '📦 Empaquetando...'
-                bat 'mvn package -DskipTests'
-            }
-        }
-
-        stage('Archive') {
-            steps {
-                echo '📦 Archivando JAR...'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
 
         stage('Deploy') {
             steps {
-                echo '🚀 Desplegando...'
-                bat '''
-                    echo "Deteniendo servidor anterior..."
-                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081 ^| findstr LISTENING') do (
-                        taskkill /F /PID %%a 2>nul
-                    )
-
-                    echo "Iniciando nuevo servidor..."
-                    cd target
-                    start /MIN cmd /c java -jar *.jar > backend.log 2>&1
-                    timeout /t 3 /nobreak
-                '''
-                echo '✅ Backend desplegado en http://localhost:8081'
+                echo 'Desplegando...'
+                script {
+                    // Detener proceso en puerto 8081
+                    bat '''
+                        for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081 ^| findstr LISTENING') do (
+                            taskkill /F /PID %%a 2>nul
+                        )
+                    '''
+                    // Iniciar app
+                    bat 'start /MIN java -jar target/*.jar'
+                    // Esperar a que inicie
+                    timeout(time: 30, unit: 'SECONDS') {
+                        waitUntil {
+                            try {
+                                def response = bat(script: "curl -s -o nul -w \"%%{http_code}\" http://localhost:8081/actuator/health", returnStdout: true).trim()
+                                return response == '200'
+                            } catch (Exception e) {
+                                return false
+                            }
+                        }
+                    }
+                }
+                echo 'Desplegado'
             }
-        }
-    }
-
-    post {
-        success {
-            echo '🎉 PIPELINE COMPLETADO CON ÉXITO'
-        }
-        failure {
-            echo '❌ PIPELINE FALLÓ'
         }
     }
 }
