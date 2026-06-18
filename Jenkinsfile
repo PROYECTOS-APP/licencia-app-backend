@@ -13,10 +13,11 @@ pipeline {
             }
         }
 
-        stage('Compile') {
+        stage('Build') {
             steps {
-                echo 'Compilando...'
-                bat 'mvn clean compile -DskipTests'
+                echo ' Compilando y empaquetando...'
+                bat 'mvn clean package -DskipTests'
+                archiveArtifacts artifacts: 'target/*.jar'
             }
         }
 
@@ -32,41 +33,37 @@ pipeline {
             }
         }
 
-        stage('Package') {
-            steps {
-                echo ' Empaquetando...'
-                bat 'mvn package -DskipTests'
-            }
-        }
-
-        stage('Archive') {
-            steps {
-                echo ' Archivando JAR...'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            }
-        }
-
         stage('Deploy') {
             steps {
-                echo ' Desplegando...'
-                bat '''
-                    echo "Deteniendo servidor anterior..."
-                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081 ^| findstr LISTENING') do (
-                        taskkill /F /PID %%a 2>nul
-                    )
-                    echo "Iniciando nuevo servidor..."
-                    cd target
-                    start /MIN cmd /c java -jar *.jar > backend.log 2>&1
-                    timeout /t 3 /nobreak
-                '''
-                echo 'Backend desplegado en http://localhost:8081'
+                echo 'Desplegando...'
+                script {
+                    // Detener proceso anterior
+                    bat '''
+                        echo " Deteniendo servidor anterior..."
+                        for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081 ^| findstr LISTENING') do (
+                            taskkill /F /PID %%a 2>nul
+                        )
+                    '''
+
+                    // Iniciar nuevo servidor
+                    bat '''
+                        echo " Iniciando nuevo servidor..."
+                        cd target
+                        start /MIN cmd /c java -jar *.jar > backend.log 2>&1
+                    '''
+
+                    // Esperar a que inicie (sin timeout)
+                    bat 'timeout /t 5 /nobreak > nul'
+
+                    echo ' Backend desplegado en http://localhost:8081'
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'PIPELINE COMPLETADO CON ÉXITO'
+            echo ' PIPELINE EXITOSO'
         }
         failure {
             echo ' PIPELINE FALLÓ'
