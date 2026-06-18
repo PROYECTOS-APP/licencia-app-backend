@@ -5,6 +5,11 @@ pipeline {
         maven 'Maven-3.9'
     }
 
+    environment {
+        APP_NAME = 'licencia-backend-app'
+        JAR_FILE = 'target/*.jar'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -17,7 +22,11 @@ pipeline {
             steps {
                 echo ' Compilando y empaquetando...'
                 bat 'mvn clean package -DskipTests'
-                archiveArtifacts artifacts: 'target/*.jar'
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
 
@@ -35,28 +44,32 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Desplegando...'
+                echo ' Desplegando...'
                 script {
-                    // Detener proceso anterior
+                    // Detener proceso anterior en puerto 8081
                     bat '''
-                        echo " Deteniendo servidor anterior..."
+                        echo "Deteniendo servidor anterior en puerto 8081..."
                         for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081 ^| findstr LISTENING') do (
+                            echo " Deteniendo PID: %%a"
                             taskkill /F /PID %%a 2>nul
                         )
+                    '''
+
+                    // Verificar que el JAR existe
+                    bat '''
+                        echo " Verificando archivo JAR..."
+                        dir target\\*.jar
                     '''
 
                     // Iniciar nuevo servidor
                     bat '''
                         echo " Iniciando nuevo servidor..."
                         cd target
-                        start /MIN cmd /c java -jar *.jar > backend.log 2>&1
+                        start /MIN cmd /c "java -jar *.jar > backend.log 2>&1"
+                        echo " Servidor iniciado en http://localhost:8081"
                     '''
-
-                    // Esperar a que inicie (sin timeout)
-                    bat 'timeout /t 5 /nobreak > nul'
-
-                    echo ' Backend desplegado en http://localhost:8081'
                 }
+                echo 'Despliegue completado!'
             }
         }
     }
@@ -67,6 +80,17 @@ pipeline {
         }
         failure {
             echo ' PIPELINE FALLÓ'
+            // Mostrar logs si falla
+            script {
+                def logContent = bat(script: "type target\\backend.log 2>nul", returnStdout: true)
+                if (logContent) {
+                    echo " Logs del servidor:"
+                    echo logContent.take(500)
+                }
+            }
+        }
+        always {
+            echo ' Pipeline finalizado'
         }
     }
 }
