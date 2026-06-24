@@ -1,3 +1,4 @@
+// src/main/java/com/licencia/licenciabackendapp/config/WebConfig.java
 package com.licencia.licenciabackendapp.config;
 
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +12,14 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:8100", "http://localhost:4200")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedOrigins(
+                        "http://localhost:8100",
+                        "http://localhost:4200",
+                        "http://localhost:8080",
+                        "http://127.0.0.1:8100",
+                        "http://127.0.0.1:4200"
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
@@ -24,13 +31,5 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:./uploads/")
                 .setCachePeriod(0);
-
-        // Servir Swagger UI
-        registry.addResourceHandler("/swagger-ui/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/springdoc-openapi-ui/")
-                .resourceChain(false);
-
-        registry.addResourceHandler("/swagger-ui.html")
-                .addResourceLocations("classpath:/META-INF/resources/");
     }
 }
